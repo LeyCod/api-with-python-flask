@@ -20,23 +20,47 @@ jackson_family = FamilyStructure("Jackson")
 def handle_invalid_usage(error):
     return jsonify(error.to_dict()), error.status_code
 
+#status_code: 200 if success. 400 if bad request (wrong info) screw up, 500 if the server encounter an error
+
 # generate sitemap with all your endpoints
 @app.route('/')
 def sitemap():
     return generate_sitemap(app)
 
 @app.route('/members', methods=['GET'])
-def handle_hello():
-
-    # this is how you can use the Family datastructure by calling its methods
+def get_all_members():
     members = jackson_family.get_all_members()
-    response_body = {
-        "hello": "world",
-        "family": members
-    }
-
-
+    response_body = members
     return jsonify(response_body), 200
+
+@app.route('/member/<int:id>', methods=['GET'])
+def get_member_by_id(id):
+    response_body = jackson_family.get_member(id)
+    return jsonify(response_body), 200
+
+@app.route('/member', methods=['POST'])
+def add_member():
+    request_body = request.json
+    member = {
+        "id": request_body['id'] or jackson_family._generateId(),
+        "first_name": request_body['first_name'],
+        "age": request_body['age'],
+        "lucky_numbers": request_body['lucky_numbers']
+    }
+    if member == None:
+        return jsonify({"message": "wrong info"}), 400
+    if member['age'] <= 0:
+        return jsonify({"message": "Age must be uo to 0"}), 400
+    response_body = jackson_family.add_member(member)
+    return jsonify(response_body), 200
+
+@app.route('/member/<int:id>', methods=['DELETE'])
+def delete_member(id):
+    response_body = {"done": jackson_family.delete_member(id)}
+    if response_body == None:
+        return jsonify({"message": "Ha ocurrido un error"}), 400
+    return jsonify(response_body), 200
+
 
 # this only runs if `$ python src/app.py` is executed
 if __name__ == '__main__':
